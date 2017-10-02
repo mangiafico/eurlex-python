@@ -2,9 +2,9 @@
 
 ## a simple Python library for EUR-Lex
 
-The primary purpose of this library is to identify all components of all English language documents in the Legislation collection (DTS = 3).
+The primary purpose of this library is to identify components of the English language documents available through EUR-Lex.
 
-EUR-Lex documents are described using the FRBR Work/Expression/Manifestation/Item vocabulary. The `query` function in this library returns an iterable of Work objects, each of which provides information about a document, its English expression, and all of its English manifestations and items. It requires registration credentials with the EUR-Lex Webservice.
+EUR-Lex documents are described using the FRBR Work/Expression/Manifestation/Item vocabulary. The `query` function in this library returns an iterable of Work objects, each of which provides information about a document, its English expression, and all of its English manifestations and items. It requires registration credentials with the EUR-Lex Webservice. Any expert search is permitted; by default queries are limited to the Legislation collection (DTS = 3).
 
 For example, the following code prints information about each item:
 

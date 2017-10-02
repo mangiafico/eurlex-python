@@ -5,8 +5,8 @@ from lxml import etree
 class EUR_Lex:
 
     @classmethod
-    def query(cls, username, password):
-        return Webservice(username, password).query()
+    def query(cls, username, password, q=None):
+        return Webservice(username, password).query(q)
 
     @classmethod
     def fetch(cls, celex):
@@ -19,8 +19,10 @@ class Webservice:
         self.username = username
         self.password = password
 
-    def make_payload(self, page):
-        return """<soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope" xmlns:sear="http://eur-lex.europa.eu/search">
+    def query(self, q='DTS = 3'):
+
+        def make_payload(page):
+            return """<soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope" xmlns:sear="http://eur-lex.europa.eu/search">
 <soap:Header>
     <wsse:Security xmlns:wsse="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd" soap:mustUnderstand="true">
     <wsse:UsernameToken xmlns:wsu="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd" wsu:Id="UsernameToken-1">
@@ -31,7 +33,7 @@ class Webservice:
 </soap:Header>
 <soap:Body>
     <sear:searchRequest>
-    <sear:expertQuery><![CDATA[ DTS = 3 ]]></sear:expertQuery>
+    <sear:expertQuery><![CDATA[ """ + q + """ ]]></sear:expertQuery>
     <sear:page>""" + str(page) + """</sear:page>
     <sear:pageSize>10</sear:pageSize>
     <sear:searchLanguage>en</sear:searchLanguage>
@@ -40,27 +42,26 @@ class Webservice:
 </soap:Envelope>
 """
 
-    def fetch_celex_numbers(self, page):
-        endpoint = "http://eur-lex.europa.eu/EURLexWebService"
-        headers = { 'Content-Type': "application/soap+xml" }
-        payload = self.make_payload(page).encode('utf-8')
-        request = Request(endpoint, payload, headers)
-        response = urlopen(request)
-        tree = etree.parse(response)
-        namespaces = {
-            'S': "http://www.w3.org/2003/05/soap-envelope",
-            'e': "http://eur-lex.europa.eu/search"
-        }
-        return [ value.text for value in tree.xpath('S:Body/e:searchResults/e:result/e:content/e:NOTICE/e:WORK/e:ID_CELEX/e:VALUE', namespaces=namespaces) ]
+        def fetch_celex_numbers(page):
+            endpoint = "http://eur-lex.europa.eu/EURLexWebService"
+            headers = { 'Content-Type': "application/soap+xml" }
+            payload = make_payload(page).encode('utf-8')
+            request = Request(endpoint, payload, headers)
+            response = urlopen(request)
+            tree = etree.parse(response)
+            namespaces = {
+                'S': "http://www.w3.org/2003/05/soap-envelope",
+                'e': "http://eur-lex.europa.eu/search"
+            }
+            return [ value.text for value in tree.xpath('S:Body/e:searchResults/e:result/e:content/e:NOTICE/e:WORK/e:ID_CELEX/e:VALUE', namespaces=namespaces) ]
 
-    def query(self):
         page = 1
-        celex_numbers = self.fetch_celex_numbers(page)
+        celex_numbers = fetch_celex_numbers(page)
         while len(celex_numbers) > 0:
             for celex in celex_numbers:
                 yield Work.fetch(celex)
             page += 1
-            celex_numbers = self.fetch_celex_numbers(page)
+            celex_numbers = fetch_celex_numbers(page)
 
 
 class XpathHelper:
