@@ -133,6 +133,14 @@ class Expression(XpathHelper):
     def manifestations(self):
         return [ Manifestation(e) for e in self.root.xpath('../MANIFESTATION') ]
 
+    def get_formex_items(self):
+        for manifest in self.manifestations:
+            if manifest.format != 'fmx4': continue
+            for item in manifest.items:
+                if not item.filename.endswith('.xml'): continue
+                if item.filename.endswith('.doc.xml'): continue
+                yield FormexItem(item.root)
+
 
 class Manifestation(XpathHelper):
 
@@ -160,3 +168,11 @@ class Item(XpathHelper):
     @property
     def filename(self):
         return self.get_string('TECHMD/STREAM_NAME/VALUE')
+
+
+class FormexItem(Item):
+
+    def xpath(self, xpath):
+        xml = urlopen(self.uri)
+        tree = etree.parse(xml)
+        return tree.xpath(xpath)
