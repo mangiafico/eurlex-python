@@ -1,5 +1,6 @@
 
 from urllib.request import Request, urlopen
+from urllib.error import HTTPError
 from lxml import etree
 
 class EUR_Lex:
@@ -59,7 +60,8 @@ class Webservice:
         celex_numbers = fetch_celex_numbers(page)
         while len(celex_numbers) > 0:
             for celex in celex_numbers:
-                yield Work.fetch(celex)
+                work = Work.fetch(celex)
+                if work is not None: yield work
             page += 1
             celex_numbers = fetch_celex_numbers(page)
 
@@ -87,7 +89,13 @@ class Work(XpathHelper):
             'Accept-Language': "eng"
         }
         request = Request(endpoint, headers=headers)
-        response = urlopen(request)
+        try:
+            response = urlopen(request)
+        except HTTPError as e:
+            if e.code == 406:
+                return None
+            else:
+                raise e
         tree = etree.parse(response)
         return Work(tree)
 
